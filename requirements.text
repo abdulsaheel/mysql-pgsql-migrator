@@ -1,0 +1,2 @@
+pymysql==1.0.3
+psycopg2==2.9.8
