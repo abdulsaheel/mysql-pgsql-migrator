@@ -3,6 +3,7 @@ import pymysql
 import psycopg2
 from psycopg2.extras import execute_values
 import json
+import requests
 
 # Batch size for data migration
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", 100000))
@@ -71,6 +72,32 @@ def create_table_if_not_exists(mysql_cursor, postgres_cursor, postgres_conn, tab
     print(f"Table {table} created or already exists in PostgreSQL.")
 
 
+def send_notification(message):
+    """
+    Sends a message to a Discord webhook.
+
+    Parameters:
+        message (str): The message to send.
+
+    Returns:
+        bool: True if the message is successfully sent, False otherwise.
+    """
+    webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+    data = {
+        "content": message
+    }
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(webhook_url, json=data, headers=headers)
+        response.raise_for_status()  # Raise an error for HTTP status codes 4xx/5xx
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending message: {e}")
+        return False
+
 def migrate_data():
     """
     Migrate data from MySQL to PostgreSQL with table creation automation and resumption support.
@@ -136,6 +163,7 @@ def migrate_data():
                 save_checkpoint(checkpoint)
 
         print("Migration complete!")
+        send_notification("Data migration complete!")
 
     except Exception as e:
         print("Error:", e)
